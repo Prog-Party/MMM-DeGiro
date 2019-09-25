@@ -15,16 +15,19 @@
 	},
 	// Define required scripts.
 	getScripts: function() {
-		return [this.file("js/degiro.js")];
+		return [
+			this.file("js/jquery-3.4.1.min.js"),
+			this.file("js/jsrender.min.js"),
+			this.file("js/degiro_template.js"),
+			this.file("js/degiro.js")
+		];
 	},
 	// Define styles.
 	getStyles: function() {
-		return [this.file("degiro_styles.css")];
+		return [this.file("css/degiro_styles.css")];
 	},
 	//// Define start sequence.
 	start: function() {
-		var jsrender = require('jsrender');
-		
 		Log.info("Starting module: " + this.name);
 		Log.info("showCashFunds:  " + this.config.showCashFunds);
 		Log.info("showPortfolio:  " + this.config.showPortfolio);
@@ -34,27 +37,35 @@
 		//this.wrapper.innerHTML = "MMM-DeGiro";
 		
 		this.degirowrapper = new DeGiroWrapper();
-		
+
+		this.deGiroCashFundsDiv = document.createElement("div").setAttribute("id", "deGiroCashFundsDiv");;
+
+		this.wrapper.innerHTML = $("#deGiroCashFundsDiv");
+
 		var self = this;
 		setInterval(function() {
 			
-			Log.info("self.degirowrapper: " + self.degirowrapper);
-			Log.info("self.degirowrapper.getCashFunds(): " + self.degirowrapper.getCashFunds());
+			//Log.info("self.degirowrapper: " + self.degirowrapper);
+			//Log.info("self.degirowrapper.getCashFunds(): " + self.degirowrapper.getCashFunds());
 					
 			if(self.config.showCashFunds) {
 				//var cashfunds = degirowrapper.getCashFunds();
 
 				//this.wrapper.html(cashfunds);
 				
-				var cashfunds = self.degirowrapper.getCashFunds();
-				Log.info("cashfunds: " + cashfunds);
-				
-				
-				var tmpl = jsrender.templates('Name: {{:name}}<br/>'); // Compile template from string
+				var cashFunds = self.degirowrapper.getCashFunds();
+				Log.info("cashFunds: " + cashFunds);
 
-				var html = tmpl.render({name: "Jim"}); // Render
+				$("#deGiroCashFundsDiv").html($.render.cashFundsTemplate(cashFunds));
+				//Log.info("html: " + html);
+
+				//self.deGiroCashFundsDiv.innerHTML = html;
+				//Log.info("this.deGiroCashFundsDiv.innerHTML" + self.deGiroCashFundsDiv.innerHTML)
+				
+				//var tmpl = jsrender.templates('Name: {{:name}}<br/>'); // Compile template from string
+
+				//var html = tmpl.render({name: "Jim"}); // Render
 				// result: "Jim Varsov"
-
 			
 	//	var divContent = '<table><tbody id="deGiroCashFunds"></tbody></table><div class="divTable" id="deGiroCashFunds"><div class="divTableBody"><div class="divTableRow"><div class="divTableCell">Currency</div><div class="divTableCell">Value</div><div class="divTableCell">valueBaseCurr</div><div class="divTableCell">Rate</div></div>";
 	//	divContent = divContent + <script id="deGiroCashFundsTemplate" type="text/x-jsrender">{^{for cashFunds}}<div class="divTableRow"><div class="divTableCell">{{:name}}</div><div class="divTableCell">{{:value}}</div><div class="divTableCell">{{:valueBaseCurr}}</div><div class="divTableCell">{{:rate}}</div></div>  {{/for}}</script>
@@ -70,12 +81,12 @@
 			//	var newDiv = `<div>${divContent}</div>`;
 
 				
-				app.get('/...', function(req, res) {
-				  res.send(html);
-				});
+				// app.get('/...', function(req, res) {
+				//   res.send(html);
+				// });
 				
-				self.wrapper.innerHTML = html;
-				#self.wrapper.innerHTML = divContent;
+				//self.wrapper.innerHTML = html;
+				//self.wrapper.innerHTML = divContent;
 				
 				//self.wrapper.innerHTML("cashfunds()");
 			}
@@ -93,7 +104,7 @@
 			}
 						
 			self.updateDom();			
-		}, 60000);
+		}, 1000);
 	},
 	// Override dom generator.
 	getDom: function() {
