@@ -201,7 +201,7 @@
 		if(digits === undefined)
 			digits = 0;
 		//todo: use this.language for the locale
-		return decimal.toLocaleString('nl-NL', {maximumFractionDigits:digits});
+		return decimal.toLocaleString('nl-NL', {maximumFractionDigits:digits, minimumFractionDigits: digits});
 	}
  });
  
