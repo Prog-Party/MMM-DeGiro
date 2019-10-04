@@ -17,15 +17,23 @@
 		showPortfolio: true,
 		portfolioTemplate: "<table>" 
 + "<tr>"
-+ "<th>Naam</th><th>Aantal</th><th>Waarde</th><th>Totaal</th><th>Dagresultaat</th>"
++ "<th>Naam</th><th>Aantal</th><th>Waarde</th>"
++ "<th><div>Totaal</div>"
++ "<div class='sub number'>{{currency}} {{totalFormat}}</div></th>"
++ "<th><div>Dagresultaat</div>"
++ "<div class='sub number {{#dayResultPositive}}positive{{/dayResultPositive}}{{#dayResultNegative}}negative{{/dayResultNegative}}'>"
++ "{{currency}} {{dayResultFormat}}"
++ "</div></th>"
 + "</tr>"
 + "{{#portfolio}}"
 + "<tr data-total='{{total}}'>"
 + "<td>{{name}}</td>"
-+ "<td>{{size}}</td>"
-+ "<td>{{currency}} {{price}}</td>"
-+ "<td>{{currency}} {{total}}</td>"
-+ "<td class='{{#dayResultPositive}}positive{{/dayResultPositive}}{{#dayResultNegative}}negative{{/dayResultNegative}}'>{{currency}} {{dayResult}}</td>"
++ "<td class='number'>{{size}}</td>"
++ "<td class='number'>{{currency}} {{priceFormat}}</td>"
++ "<td class='number'>{{currency}} {{totalFormat}}</td>"
++ "<td class='number {{#dayResultPositive}}positive{{/dayResultPositive}}{{#dayResultNegative}}negative{{/dayResultNegative}}'>"
++ "{{currency}} {{dayResultFormat}}"
++ "</td>"
 + "</tr>"
 + "{{/portfolio}}"
 + "</table>"
@@ -86,7 +94,8 @@
 			case "portfolioReceived":
 				Log.info("Received deGiro portfolio");
 				
-				var portfolio = payload.portfolio.map(this.mapPortfolioItems);				
+				Log.info(JSON.stringify(payload.portfolio));
+				var portfolio = payload.portfolio.map(m => this.mapPortfolioItems(m));				
 				var filteredPayload = portfolio.filter(this.filterPortfolioOnAvailability);
 				this.portfolioItems = filteredPayload;
 				
@@ -104,16 +113,47 @@
 				for(var i = 0; i < this.portfolioItems.length; i++)
 				{
 					var id = this.portfolioItems[i].id;
-					this.portfolioItems[i].name = payload.data[id].name;
-					
+					var product = payload.data[id];
+										
+					var dayResult = (this.portfolioItems[i].price - product.closePrice) * this.portfolioItems[i].size;
 					var currency = payload.data[id].currency;
 					if(currency == "EUR") currency = "€";
 					if(currency == "USD") currency = "$";
+					
 					this.portfolioItems[i].currency = currency;
+					this.portfolioItems[i].name = product.name;
+					this.portfolioItems[i].dayResult = dayResult;
+					this.portfolioItems[i].dayResultFormat = this.formatDecimal(dayResult,2);
+					this.portfolioItems[i].dayResultPositive = dayResult > 0;
+					this.portfolioItems[i].dayResultNegative = dayResult < 0;
 				};
 				
-				var newPayload = {portfolio: this.portfolioItems};
-				var html = Mustache.render(this.config.portfolioTemplate, newPayload);
+				var portfolio = this.portfolioItems;
+				
+				//Calculate the (sub)total of all
+				var total = 0;
+				var dayResult = 0;
+				var currency = "EUR";
+				if(portfolio.length > 0)
+				{
+					currency = portfolio[0].currency;	
+					total = portfolio.reduce((a,b) => a.total+b.total);
+					dayResult = portfolio.reduce((a,b) => a.dayResult+b.dayResult);			
+				}
+				
+				var data = {
+					portfolio: portfolio, 
+					total: total, 
+					totalFormat: this.formatDecimal(total),
+					currency: currency, 
+					dayResult: dayResult,
+					dayResultFormat: this.formatDecimal(dayResult,2),
+					dayResultPositive: dayResult > 0,
+					dayResultNegative: dayResult < 0
+				};
+				
+				
+				var html = Mustache.render(this.config.portfolioTemplate, data);
 				$("#deGiroPortfolioDiv").html(html);
 				this.updateDom();	
 				break;
@@ -125,7 +165,6 @@
 		var price = 0.0;
 		var total = 0.0;
 		var positionType = "";
-		var dayResult = 0.0;
 		
 		for(var i=0; i < values.length; i++) {
 			var name = values[i].name;
@@ -142,20 +181,27 @@
 			if(name == "todayRealizedProductPl")
 				dayResult = value;
 		}
+		var priceFormat = this.formatDecimal(price,2);
+		var totalFormat = this.formatDecimal(total);
 		
 		return { 
 			id: portfolio.id,	
 			size: size, 
 			price: price,
+			priceFormat: priceFormat,
 			total: total,
-			positionType: positionType,
-			dayResult: dayResult,
-			dayResultPositive: dayResult > 0,
-			dayResultNegative: dayResult < 0,
+			totalFormat: totalFormat,
+			positionType: positionType
 		}; 
 	},	
 	filterPortfolioOnAvailability: function (portfolio) {
 		return portfolio.size != 0 && portfolio.positionType == "PRODUCT";
+	},
+	formatDecimal: function(decimal, digits) {
+		if(digits === undefined)
+			digits = 0;
+		//todo: use this.language for the locale
+		return decimal.toLocaleString('nl-NL', {maximumFractionDigits:digits});
 	}
  });
  

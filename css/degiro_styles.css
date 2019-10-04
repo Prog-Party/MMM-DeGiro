@@ -1,25 +1,36 @@
 #DeGiroWrapper {
-	font-size: 0.8em;
+	font-size: 0.7em;
 	line-height: 38px;
 }
+
+	#DeGiroWrapper table th {
+		background-color: #aaa;
+		color: black;
+		vertical-align: top;
+	}
+
+		#DeGiroWrapper table th .sub {
+			line-height: 20px;
+			padding-bottom: 5px;
+		}
 
 #DeGiroWrapper table td, 
 #DeGiroWrapper table th {
     padding-right: 20px;
 }
 
-#DeGiroWrapper table th {
-    background-color: #aaa;
-	color: black;
-}
+	#DeGiroWrapper table tr:nth-child(odd) {
+		background-color: #222;
+	}
+	
+	#DeGiroWrapper table .number, 
+	#DeGiroWrapper table .number {
+		text-align: right;
+	}
 
-#DeGiroWrapper table tr:nth-child(odd) {
-    background-color: #222;
-}
-
-#DeGiroWrapper table td.positive {
-    color: #197B30;
-}
-#DeGiroWrapper table td.negative {
-    color: #FF0000;
-}
+	#DeGiroWrapper table .positive {
+		color: #197B30;
+	}
+	#DeGiroWrapper table .negative {
+		color: #FF0000;
+	}
