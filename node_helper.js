@@ -12,7 +12,6 @@ var DeGiro = require("degiro");
 module.exports = NodeHelper.create({
 	start: function() {
 	},
-	
 	socketNotificationReceived: function(notification, payload) {
 		switch(notification) {
 			case "getCashFunds":
@@ -54,8 +53,7 @@ module.exports = NodeHelper.create({
 			break;
 		}
 	},
-	
-	 getDeGiroInstance: function(payload) {
+	getDeGiroInstance: function(payload) {
 		 var degiro = DeGiro.create({ 
 		      username: payload.username,
 		      password: payload.password,

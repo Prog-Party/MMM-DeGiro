@@ -73,10 +73,7 @@
 	getDom: function() {
 		return this.wrapper;
 	}, 
-	socketNotificationReceived: function(notification, payload) {
-		
-		Log.info(notification);
-				
+	socketNotificationReceived: function(notification, payload) {			
 		switch(notification) {
 			case "cashFundsReceived":
 				Log.info("Received deGiro cashfund");
@@ -160,6 +157,5 @@
 	filterPortfolioOnAvailability: function (portfolio) {
 		return portfolio.size != 0 && portfolio.positionType == "PRODUCT";
 	}
-	
  });
  
