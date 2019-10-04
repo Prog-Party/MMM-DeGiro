@@ -1,1 +1,0 @@
-$.templates("cashFundsTemplate", "<label>Name:</label> {{:name}} <label>Value:</label> {{:value}} ");

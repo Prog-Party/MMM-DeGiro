@@ -6,128 +6,160 @@
  * MIT Licensed.
  */
  
+ var DeGiroServer;
+ 
  Module.register("MMM-DeGiro" ,{
-	// Define module defaults
 	defaults: {
-		showCashFunds: true,
-		showPortfolio: false,
-		showClientInfo: false
+		username: "",
+		password: "",
+		showCashFunds: false,
+		cashFundsTemplate: "{{#cashFunds}}<div>{{name}} {{value}}</div>{{/cashFunds}}", 
+		showPortfolio: true,
+		portfolioTemplate: "<table>" 
++ "<tr>"
++ "<th>Naam</th><th>Aantal</th><th>Waarde</th><th>Totaal</th><th>Dagresultaat</th>"
++ "</tr>"
++ "{{#portfolio}}"
++ "<tr data-total='{{total}}'>"
++ "<td>{{name}}</td>"
++ "<td>{{size}}</td>"
++ "<td>{{currency}} {{price}}</td>"
++ "<td>{{currency}} {{total}}</td>"
++ "<td class='{{#dayResultPositive}}positive{{/dayResultPositive}}{{#dayResultNegative}}negative{{/dayResultNegative}}'>{{currency}} {{dayResult}}</td>"
++ "</tr>"
++ "{{/portfolio}}"
++ "</table>"
+
 	},
-	// Define required scripts.
 	getScripts: function() {
 		return [
 			this.file("js/jquery-3.4.1.min.js"),
-			this.file("js/jsrender.min.js"),
-			this.file("js/degiro_template.js"),
-			this.file("js/degiro.js")
+			this.file("js/mustache.min.js")
 		];
 	},
-	// Define styles.
 	getStyles: function() {
 		return [this.file("css/degiro_styles.css")];
 	},
-	//// Define start sequence.
 	start: function() {
+		DeGiroServer = this;
 		Log.info("Starting module: " + this.name);
-		Log.info("showCashFunds:  " + this.config.showCashFunds);
-		Log.info("showPortfolio:  " + this.config.showPortfolio);
-		Log.info("showClientInfo: " + this.config.showClientInfo);
+		Log.info("showCashFunds:   " + this.config.showCashFunds);
+		Log.info("showPortfolio:   " + this.config.showPortfolio);
 		
+		var html = "<div id='deGiroCashFundsDiv'></div>";
+		html += "<div id='deGiroPortfolioDiv'></div>";
+				
 		this.wrapper = document.createElement("div");
-		//this.wrapper.innerHTML = "MMM-DeGiro";
-		
-		this.degirowrapper = new DeGiroWrapper();
+		this.wrapper.id = "DeGiroWrapper";
+		$(this.wrapper).html(html);
 
-		this.deGiroCashFundsDiv = document.createElement("div").setAttribute("id", "deGiroCashFundsDiv");;
-
-		this.wrapper.innerHTML = $("#deGiroCashFundsDiv");
+		this.executeGetDeGiro();
 
 		var self = this;
-		setInterval(function() {
-			
-			//Log.info("self.degirowrapper: " + self.degirowrapper);
-			//Log.info("self.degirowrapper.getCashFunds(): " + self.degirowrapper.getCashFunds());
-					
-			if(self.config.showCashFunds) {
-				//var cashfunds = degirowrapper.getCashFunds();
-
-				//this.wrapper.html(cashfunds);
-				
-				var cashFunds = self.degirowrapper.getCashFunds();
-				Log.info("cashFunds: " + cashFunds);
-
-				$("#deGiroCashFundsDiv").html($.render.cashFundsTemplate(cashFunds));
-				//Log.info("html: " + html);
-
-				//self.deGiroCashFundsDiv.innerHTML = html;
-				//Log.info("this.deGiroCashFundsDiv.innerHTML" + self.deGiroCashFundsDiv.innerHTML)
-				
-				//var tmpl = jsrender.templates('Name: {{:name}}<br/>'); // Compile template from string
-
-				//var html = tmpl.render({name: "Jim"}); // Render
-				// result: "Jim Varsov"
-			
-	//	var divContent = '<table><tbody id="deGiroCashFunds"></tbody></table><div class="divTable" id="deGiroCashFunds"><div class="divTableBody"><div class="divTableRow"><div class="divTableCell">Currency</div><div class="divTableCell">Value</div><div class="divTableCell">valueBaseCurr</div><div class="divTableCell">Rate</div></div>";
-	//	divContent = divContent + <script id="deGiroCashFundsTemplate" type="text/x-jsrender">{^{for cashFunds}}<div class="divTableRow"><div class="divTableCell">{{:name}}</div><div class="divTableCell">{{:value}}</div><div class="divTableCell">{{:valueBaseCurr}}</div><div class="divTableCell">{{:rate}}</div></div>  {{/for}}</script>
-	//		divContent = divContent + "</div></div>';		
-				
-
-				//for(var i = 0; i < cashFunds.length; i++)
-				//{
-				//	var cashFund = cashFunds[i];
-			//		divContent += `<div>${cashFund.name} ${cashFund.value} (ID: ${cashFund.id})</div>`;
-		//		}
-
-			//	var newDiv = `<div>${divContent}</div>`;
-
-				
-				// app.get('/...', function(req, res) {
-				//   res.send(html);
-				// });
-				
-				//self.wrapper.innerHTML = html;
-				//self.wrapper.innerHTML = divContent;
-				
-				//self.wrapper.innerHTML("cashfunds()");
-			}
-
-			if(this.config.showPortfolio) {
-				//var portfolio = degirowrapper.getPortfolio();
-
-				//this.wrapper.innerHTML(portfolio);
-			}
-
-			if(this.config.showClientInfo) {
-				//var clientInfo = degirowrapper.getClientInfo();
-
-				//this.wrapper.innerHTML(clientInfo);
-			}
-						
-			self.updateDom();			
-		}, 1000);
+		setInterval(function() { self.executeGetDeGiro(); }, 1000 * 60 * 10); //every 10 minutes
 	},
-	// Override dom generator.
+	executeGetDeGiro: function() {
+		var payload = {username: this.config.username, password: this.config.password};
+			
+		if(this.config.showCashFunds) {
+			Log.info("Retrieve deGiro cashfund");
+			DeGiroServer.sendSocketNotification("getCashFunds", payload);
+		}
+		if(this.config.showPortfolio) {
+			Log.info("Retrieve deGiro portfolio");
+			DeGiroServer.sendSocketNotification("getPortfolio", payload);
+		}		
+	},
 	getDom: function() {
-		
-		//if(showCashFunds) {
-			//var cashfunds = degiro.getCashFunds();
-			
-			//wrapper.html(cashfunds);					
-		//}
-		
-		//if(showPortfolio) {
-			//var portfolio = degiro.getPortfolio();
-			
-			//wrapper.html(portfolio);
-		//}
-		
-		//if(showClientInfo) {
-			//var clientInfo = degiro.getClientInfo();
-			
-			//wrapper.html(clientInfo);
-		//}
-		
 		return this.wrapper;
+	}, 
+	socketNotificationReceived: function(notification, payload) {
+		
+		Log.info(notification);
+				
+		switch(notification) {
+			case "cashFundsReceived":
+				Log.info("Received deGiro cashfund");
+				
+				var html = Mustache.render(this.config.cashFundsTemplate, payload);
+				Log.info(html);
+				$("#deGiroCashFundsDiv").html(html);
+				this.updateDom();	
+				break;
+			case "portfolioReceived":
+				Log.info("Received deGiro portfolio");
+				
+				var portfolio = payload.portfolio.map(this.mapPortfolioItems);				
+				var filteredPayload = portfolio.filter(this.filterPortfolioOnAvailability);
+				this.portfolioItems = filteredPayload;
+				
+				var productIdsPayload = {
+					username: this.config.username, 
+					password: this.config.password,
+					productIds: filteredPayload.map(p => p.id)
+				};
+				DeGiroServer.sendSocketNotification("getProductIds", productIdsPayload);
+				break;
+			case "productIdsReceived":
+				Log.info("Product ids received");
+				Log.info(payload);
+				Log.info(this.portfolioItems);
+				for(var i = 0; i < this.portfolioItems.length; i++)
+				{
+					var id = this.portfolioItems[i].id;
+					this.portfolioItems[i].name = payload.data[id].name;
+					
+					var currency = payload.data[id].currency;
+					if(currency == "EUR") currency = "€";
+					if(currency == "USD") currency = "$";
+					this.portfolioItems[i].currency = currency;
+				};
+				
+				var newPayload = {portfolio: this.portfolioItems};
+				var html = Mustache.render(this.config.portfolioTemplate, newPayload);
+				$("#deGiroPortfolioDiv").html(html);
+				this.updateDom();	
+				break;
+		}
+	},
+	mapPortfolioItems: function(portfolio) {
+		var values = portfolio.value;
+		var size = 0;
+		var price = 0.0;
+		var total = 0.0;
+		var positionType = "";
+		var dayResult = 0.0;
+		
+		for(var i=0; i < values.length; i++) {
+			var name = values[i].name;
+			var value = values[i].value;
+			
+			if(name == "size") 
+				size = value;
+			if(name == "price")
+				price = value;
+			if(name == "value")
+				total = value;
+			if(name == "positionType")
+				positionType = value;
+			if(name == "todayRealizedProductPl")
+				dayResult = value;
+		}
+		
+		return { 
+			id: portfolio.id,	
+			size: size, 
+			price: price,
+			total: total,
+			positionType: positionType,
+			dayResult: dayResult,
+			dayResultPositive: dayResult > 0,
+			dayResultNegative: dayResult < 0,
+		}; 
+	},	
+	filterPortfolioOnAvailability: function (portfolio) {
+		return portfolio.size != 0 && portfolio.positionType == "PRODUCT";
 	}
+	
  });
  
