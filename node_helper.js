@@ -41,13 +41,25 @@ module.exports = NodeHelper.create({
 			case "getProductIds":
 				console.log("Retrieving product id's");
 				var degiro = this.getDeGiroInstance(payload);
+				
 				var self = this;
 				degiro.login()
-					  .then(function() {
-							return degiro.getProductsByIds(payload.productIds);
-						})
+					  .then(function() { return degiro.getProductsByIds(payload.productIds); })
+					  .then(function(response) {						  
+							self.sendSocketNotification("productIdsReceived", response);	
+							})
+					  .catch(console.error);
+			break;
+			case "getBidPrice":
+				console.log("Retrieving ask bid price");
+				var degiro = this.getDeGiroInstance(payload);
+
+				var self = this;
+				
+				degiro.login()
+					  .then(function() { return degiro.getAskBidPrice(payload.askBidPriceId); })
 					  .then(function(response) {
-								self.sendSocketNotification("productIdsReceived", response);	
+							self.sendSocketNotification("bidPriceReceived", { lastPrice: response.lastPrice, askBidPriceId: payload.askBidPriceId });	
 							})
 					  .catch(console.error);
 			break;

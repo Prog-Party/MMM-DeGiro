@@ -110,54 +110,103 @@
 				Log.info("Product ids received");
 				Log.info(payload);
 				Log.info(this.portfolioItems);
+				
+				var needsToRender = false;
 				for(var i = 0; i < this.portfolioItems.length; i++)
 				{
 					var id = this.portfolioItems[i].id;
 					var product = payload.data[id];
 										
-					var dayResult = (this.portfolioItems[i].price - product.closePrice) * this.portfolioItems[i].size;
-					var currency = payload.data[id].currency;
+					var currency = product.currency;
 					if(currency == "EUR") currency = "€";
 					if(currency == "USD") currency = "$";
 					
+					this.portfolioItems[i].closePrice = product.closePrice;
 					this.portfolioItems[i].currency = currency;
 					this.portfolioItems[i].name = product.name;
-					this.portfolioItems[i].dayResult = dayResult;
-					this.portfolioItems[i].dayResultFormat = this.formatDecimal(dayResult,2);
-					this.portfolioItems[i].dayResultPositive = dayResult > 0;
-					this.portfolioItems[i].dayResultNegative = dayResult < 0;
+					this.portfolioItems[i].askBidPriceId = product.vwdId;
+					Log.info("Dayresult: " + dayResult);
+					
+					if(dayResult === 0)
+					{
+						var askBidPricePayload = {
+							username: this.config.username, 
+							password: this.config.password,
+							askBidPriceId: product.vwdId
+						};
+						DeGiroServer.sendSocketNotification("getBidPrice", askBidPricePayload);
+					} else {
+						this.portfolioItems[i].askBidPrice = this.portfolioItems[i].price;		
+						this.initializeDayResult(this.portfolioItems[i]);		
+						needsToRender = true;
+							
+					}
 				};
 				
-				var portfolio = this.portfolioItems;
-				
-				//Calculate the (sub)total of all
-				var total = 0;
-				var dayResult = 0;
-				var currency = "EUR";
-				if(portfolio.length > 0)
+				if(needsToRender)
 				{
-					currency = portfolio[0].currency;	
-					total = portfolio.reduce((a,b) => a.total+b.total);
-					dayResult = portfolio.reduce((a,b) => a.dayResult+b.dayResult);			
+					this.renderPortfolio();
+					this.updateDom();			
+				}
+								
+			break;
+			case "bidPriceReceived":
+				Log.info("Bid price payload: ");
+				Log.info(payload);
+				//;
+				//payload.lastPrice
+				
+				for(var i = 0; i < this.portfolioItems.length; i++)
+				{
+					if(this.portfolioItems[i].askBidPriceId == payload.askBidPriceId)
+					{
+						this.portfolioItems[i].askBidPrice = payload.lastPrice;
+						this.initializeDayResult(this.portfolioItems[i]);
+						//var dayResult = (this.portfolioItems[i].askBidPrice - product.closePrice) * this.portfolioItems[i].size;
+						//Log.info(`Found bid price. Current dayResult: ${this.portfolioItems[i].dayResult}, new: ${payload.lastPrice}.`);
+					}
 				}
 				
-				var data = {
-					portfolio: portfolio, 
-					total: total, 
-					totalFormat: this.formatDecimal(total),
-					currency: currency, 
-					dayResult: dayResult,
-					dayResultFormat: this.formatDecimal(dayResult,2),
-					dayResultPositive: dayResult > 0,
-					dayResultNegative: dayResult < 0
-				};
-				
-				
-				var html = Mustache.render(this.config.portfolioTemplate, data);
-				$("#deGiroPortfolioDiv").html(html);
-				this.updateDom();	
-				break;
+				this.renderPortfolio();
+				this.updateDom();
+			break;
 		}
+	},
+	initializeDayResult: function(portfolioItem) {
+		var dayResult = (portfolioItem.askBidPrice - portfolioItem.closePrice) * portfolioItem.size;
+						
+		portfolioItem.dayResult = dayResult;
+		portfolioItem.dayResultFormat = this.formatDecimal(dayResult,2);
+		portfolioItem.dayResultPositive = dayResult > 0;
+		portfolioItem.dayResultNegative = dayResult < 0;
+	},		
+	renderPortfolio: function() {
+		var portfolio = this.portfolioItems;
+		//Calculate the (sub)total of all
+		var total = 0;
+		var dayResult = 0;
+		var currency = "EUR";
+		if(portfolio.length > 0)
+		{
+			currency = portfolio[0].currency;	
+			total = portfolio.reduce((a,b) => a.total+b.total);
+			dayResult = portfolio.reduce((a,b) => a.dayResult+b.dayResult);			
+		}
+		
+		var data = {
+			portfolio: portfolio, 
+			total: total, 
+			totalFormat: this.formatDecimal(total),
+			currency: currency, 
+			dayResult: dayResult,
+			dayResultFormat: this.formatDecimal(dayResult,2),
+			dayResultPositive: dayResult > 0,
+			dayResultNegative: dayResult < 0
+		};
+		
+		
+		var html = Mustache.render(this.config.portfolioTemplate, data);
+		$("#deGiroPortfolioDiv").html(html);
 	},
 	mapPortfolioItems: function(portfolio) {
 		var values = portfolio.value;
