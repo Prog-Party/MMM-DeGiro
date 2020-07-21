@@ -24,7 +24,8 @@ Add this to your modules array in the configuration file `config/config.js`
 	}
 }
 ```
-`portfolioTemplate` is optional, if no template is added the following default template is used:
+`portfolioTemplate` is optional, if no template is added the following default template is used.
+
 `portfolioTemplate` is a string field where HTML can be added.
 
 ### Simple Version of a template:
